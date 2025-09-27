@@ -12,13 +12,17 @@
         .table-responsive { max-height: 400px; }
         body.dark-mode { background-color: #121212; color: #f1f1f1; }
         body.dark-mode .card { background-color: #1e1e1e; color: #f1f1f1; border-color: #2a2a2a; }
-        body.dark-mode .table { color: #f1f1f1; }
-        body.dark-mode .table thead th { color: #f1f1f1; }
-        body.dark-mode .table-striped tbody tr:nth-of-type(odd) { --bs-table-accent-bg: rgba(255,255,255,0.05); color: #f1f1f1; }
+        body.dark-mode .table { color: #f1f1f1; background-color: #121212; }
+        body.dark-mode .table thead th { color: #ffffff; background-color: #1f1f1f; border-color: #333; }
+        body.dark-mode .table tbody td { color: #f8f9fa; background-color: #181818; border-color: #2a2a2a; }
+        body.dark-mode .table-striped tbody tr:nth-of-type(odd) { background-color: #1f1f1f; color: #f8f9fa; }
+        body.dark-mode .table-striped tbody tr:nth-of-type(even) { background-color: #181818; color: #f8f9fa; }
+        body.dark-mode .table tbody tr:hover { background-color: #232323; }
         body.dark-mode .form-control { background-color: #2a2a2a; color: #f1f1f1; border-color: #3a3a3a; }
         body.dark-mode .form-control:focus { background-color: #2f2f2f; color: #fff; border-color: #5c7cfa; box-shadow: none; }
         body.dark-mode .form-control.is-invalid { border-color: #ff6b6b; }
         body.dark-mode .form-control.is-valid { border-color: #51cf66; }
+        body.dark-mode .text-muted { color: rgba(255,255,255,0.75)!important; }
         body.dark-mode .alert-info { background-color: rgba(13,110,253,0.1); color: #cfe2ff; border-color: rgba(13,110,253,0.2); }
         body.dark-mode .nav-tabs .nav-link.active { background-color: #1e1e1e; border-color: #2a2a2a; color: #f1f1f1; }
         body.dark-mode .nav-tabs .nav-link { color: #dee2e6; }
@@ -80,7 +84,7 @@
                     {% endfor %}
                 </div>
                 <button type="submit" name="predict" class="btn btn-primary">Predict Diagnosis</button>
-                <button type="button" id="reset-patient" class="btn btn-outline-secondary ms-2">Reset Patient Form</button>
+                <button type="button" id="reset-patient" class="btn btn-primary ms-2">Reset Patient Form</button>
             </div>
         </div>
     </form>
@@ -119,8 +123,8 @@
                     </div>
                     {% endfor %}
                 </div>
-                <button type="submit" name="filter" class="btn btn-secondary">Apply Filters</button>
-                <button type="button" id="reset-filters" class="btn btn-outline-secondary ms-2">Reset Filters</button>
+                <button type="submit" name="filter" class="btn btn-primary">Apply Filters</button>
+                <button type="button" id="reset-filters" class="btn btn-primary ms-2">Reset Filters</button>
             </div>
         </div>
     </form>
