@@ -18,6 +18,7 @@
         body.dark-mode .form-control { background-color: #2a2a2a; color: #f1f1f1; border-color: #3a3a3a; }
         body.dark-mode .form-control:focus { background-color: #2f2f2f; color: #fff; border-color: #5c7cfa; box-shadow: none; }
         body.dark-mode .form-control.is-invalid { border-color: #ff6b6b; }
+        body.dark-mode .form-control.is-valid { border-color: #51cf66; }
         body.dark-mode .alert-info { background-color: rgba(13,110,253,0.1); color: #cfe2ff; border-color: rgba(13,110,253,0.2); }
         body.dark-mode .nav-tabs .nav-link.active { background-color: #1e1e1e; border-color: #2a2a2a; color: #f1f1f1; }
         body.dark-mode .nav-tabs .nav-link { color: #dee2e6; }
@@ -66,7 +67,7 @@
                             <label class="form-label" for="{{ feature.name }}">{{ feature.label }}</label>
                             <input 
                                 type="text"
-                                class="form-control {% if diagnosis_errors.get(feature.name) %}is-invalid{% endif %}"
+                                class="form-control {% if diagnosis_errors.get(feature.name) %}is-invalid{% elif diagnosis_values.get(feature.name) %}is-valid{% endif %}"
                                 id="{{ feature.name }}"
                                 name="{{ feature.name }}"
                                 value="{{ diagnosis_values.get(feature.name, '') }}"
@@ -108,10 +109,12 @@
                             <label class="form-label" for="filter_{{ feature.name }}">{{ feature.label }} Filter</label>
                             <input 
                                 type="text"
-                                class="form-control"
+                                class="form-control {% if filter_errors.get(feature.name) %}is-invalid{% endif %}"
                                 id="filter_{{ feature.name }}"
                                 name="filter_{{ feature.name }}"
-                                value="{{ filter_values.get('filter_' + feature.name, '') }}">
+                                value="{{ filter_values.get('filter_' + feature.name, '') }}"
+                                data-server-error="{{ filter_errors.get(feature.name, '') }}">
+                            <div class="invalid-feedback">{{ filter_errors.get(feature.name) }}</div>
                         </div>
                     </div>
                     {% endfor %}
@@ -170,6 +173,7 @@
         const inputs = diagnosisForm.querySelectorAll('input[name]:not([type="hidden"])');
         inputs.forEach(function(input) {
           input.value = '';
+          input.classList.remove('is-valid', 'is-invalid');
         });
       });
     }
@@ -180,6 +184,12 @@
         const inputs = recordsForm.querySelectorAll('input[name^="filter_"]');
         inputs.forEach(function(input) {
           input.value = '';
+          input.classList.remove('is-valid', 'is-invalid');
+          const feedback = input.nextElementSibling;
+          if (feedback && feedback.classList.contains('invalid-feedback')) {
+            feedback.textContent = '';
+          }
+          input.removeAttribute('data-server-error');
         });
       });
     }
@@ -210,6 +220,97 @@
         const newTheme = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
         applyTheme(newTheme);
         localStorage.setItem('theme', newTheme);
+      });
+    }
+
+    function updateFieldState(input) {
+      const value = input.value.trim();
+      if (!value) {
+        input.classList.remove('is-valid', 'is-invalid');
+        return;
+      }
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        input.classList.remove('is-valid');
+        input.classList.add('is-invalid');
+      } else {
+        input.classList.remove('is-invalid');
+        input.classList.add('is-valid');
+      }
+    }
+
+    const filterAllowedOps = ['>=', '<=', '==', '>', '<'];
+
+    function updateFilterState(input) {
+      const feedback = input.nextElementSibling;
+      const serverError = input.getAttribute('data-server-error');
+      input.classList.remove('is-valid', 'is-invalid');
+      if (feedback && feedback.classList.contains('invalid-feedback')) {
+        feedback.textContent = '';
+      }
+      if (serverError) {
+        input.classList.add('is-invalid');
+        if (feedback && feedback.classList.contains('invalid-feedback')) {
+          feedback.textContent = serverError;
+        }
+        return;
+      }
+
+      const value = input.value.trim();
+      if (!value) {
+        return;
+      }
+      const op = filterAllowedOps.find(op => value.startsWith(op));
+      if (!op) {
+        input.classList.add('is-invalid');
+        if (feedback && feedback.classList.contains('invalid-feedback')) {
+          feedback.textContent = 'Start with >, >=, <, <=, or ==';
+        }
+        return;
+      }
+      const numberPart = value.slice(op.length).trim();
+      if (!numberPart) {
+        input.classList.add('is-invalid');
+        if (feedback && feedback.classList.contains('invalid-feedback')) {
+          feedback.textContent = 'Provide a numeric value after the operator.';
+        }
+        return;
+      }
+      const parsed = Number(numberPart);
+      if (!Number.isFinite(parsed)) {
+        input.classList.add('is-invalid');
+        if (feedback && feedback.classList.contains('invalid-feedback')) {
+          feedback.textContent = 'Provide a numeric value after the operator.';
+        }
+        return;
+      }
+      input.classList.add('is-valid');
+    }
+
+    if (diagnosisForm) {
+      const inputs = diagnosisForm.querySelectorAll('input[name]:not([type="hidden"])');
+      inputs.forEach(function(input) {
+        input.addEventListener('input', function () {
+          updateFieldState(input);
+        });
+        input.addEventListener('blur', function () {
+          updateFieldState(input);
+        });
+        updateFieldState(input);
+      });
+    }
+
+    if (recordsForm) {
+      const inputs = recordsForm.querySelectorAll('input[name^="filter_"]');
+      inputs.forEach(function(input) {
+        input.addEventListener('input', function () {
+          input.removeAttribute('data-server-error');
+          updateFilterState(input);
+        });
+        input.addEventListener('blur', function () {
+          updateFilterState(input);
+        });
+        updateFilterState(input);
       });
     }
   })();

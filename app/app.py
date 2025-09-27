@@ -119,18 +119,18 @@ def filter_records(
             continue
         parsed = _parse_filter(expr)
         if parsed is None:
-            raise ValueError(f"Invalid filter expression '{expr}' for {meta.label}")
+            raise ValidationError(meta.name, f"Invalid filter expression '{expr}' for {meta.label}")
         op, value = parsed
         series = df[meta.name]
         if meta.is_numeric:
             try:
                 num_value = float(value)
             except ValueError:
-                raise ValueError(f"Filter value for {meta.label} must be numeric.")
+                raise ValidationError(meta.name, f"Filter value for {meta.label} must be numeric.")
             comparator = num_value
         else:
             if op != "==":
-                raise ValueError(f"Only equality filtering is supported for {meta.label}.")
+                raise ValidationError(meta.name, f"Only equality filtering is supported for {meta.label}.")
             comparator = value
 
         if meta.is_numeric:
@@ -146,7 +146,7 @@ def filter_records(
             elif op == "==":
                 mask &= series == comparator
             else:
-                raise ValueError(f"Unsupported operator '{op}' for {meta.label}")
+                raise ValidationError(meta.name, f"Unsupported operator '{op}' for {meta.label}")
         else:
             mask &= series.astype(str) == comparator
     filtered = df.loc[mask]
@@ -185,6 +185,7 @@ def index():
     diagnosis_values: Dict[str, str] = {}
     diagnosis_errors: Dict[str, str] = {}
     filter_values: Dict[str, str] = {}
+    filter_errors: Dict[str, str] = {}
 
     if request.method == "POST":
         active_tab = request.form.get("tab", "diagnosis")
@@ -212,9 +213,14 @@ def index():
                 )
         except ValidationError as err:
             flash(str(err), "danger")
-            diagnosis_errors[err.field] = str(err)
-            if not diagnosis_values:
-                diagnosis_values = {k: v for k, v in request.form.items() if k in feature_names}
+            if active_tab == "diagnosis":
+                diagnosis_errors[err.field] = str(err)
+                if not diagnosis_values:
+                    diagnosis_values = {k: v for k, v in request.form.items() if k in feature_names}
+            elif active_tab == "records":
+                filter_errors[err.field] = str(err)
+                if not filter_values:
+                    filter_values = {k: v for k, v in request.form.items() if k.startswith("filter_")}
         except ValueError as err:
             flash(str(err), "danger")
             if active_tab == "records":
@@ -233,6 +239,7 @@ def index():
         diagnosis_values=diagnosis_values,
         diagnosis_errors=diagnosis_errors,
         filter_values=filter_values,
+        filter_errors=filter_errors,
     )
 
 
