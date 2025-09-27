@@ -12,7 +12,7 @@ from typing import Dict, List, Optional
 try:
     import joblib
     import pandas as pd
-except ImportError as exc:  # pragma: no cover - helpful error for missing deps
+except ImportError as exc:  
     missing_pkg = "joblib" if "joblib" in str(exc) else "pandas"
     sys.stderr.write(
         f"Missing dependency: {missing_pkg}. Install with `python3 -m pip install {missing_pkg}` and retry.\n"
@@ -30,7 +30,7 @@ try:
     from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
     from sklearn.neighbors import KNeighborsClassifier
     from sklearn.svm import SVC
-except ImportError as exc:  # pragma: no cover - helpful error for missing deps
+except ImportError as exc:  
     sys.stderr.write(
         "Missing scikit-learn components. Install with `python3 -m pip install scikit-learn`.\n"
     )
