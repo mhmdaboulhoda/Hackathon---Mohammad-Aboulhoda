@@ -1,0 +1,24 @@
+services:
+  web:
+    build: .
+    command: gunicorn --bind 0.0.0.0:5000 app.app:app
+    ports:
+      - "5000:5000"
+    environment:
+      FLASK_ENV: production
+    volumes:
+      - ./models:/app/models
+      - ./reports:/app/reports
+      - ./Breast_cancer_dataset.csv:/app/Breast_cancer_dataset.csv:ro
+
+  trainer:
+    build: .
+    command: >
+      python scripts/train_models.py Breast_cancer_dataset.csv
+        --model-path models/best_model.joblib
+        --output-json reports/model_selection_results.json
+    profiles: ["tools"]
+    volumes:
+      - ./models:/app/models
+      - ./reports:/app/reports
+      - ./Breast_cancer_dataset.csv:/app/Breast_cancer_dataset.csv:ro
