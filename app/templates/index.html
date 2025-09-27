@@ -5,16 +5,30 @@
     <title>Breast Cancer Diagnosis Assistant</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     <style>
-        body { padding-top: 2rem; }
+        body { padding-top: 2rem; transition: background-color 0.3s ease, color 0.3s ease; }
         .feature-input { margin-bottom: 1rem; }
         .filter-input { margin-bottom: 0.5rem; }
-        .card { margin-bottom: 2rem; }
+        .card { margin-bottom: 2rem; transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
         .table-responsive { max-height: 400px; }
+        body.dark-mode { background-color: #121212; color: #f1f1f1; }
+        body.dark-mode .card { background-color: #1e1e1e; color: #f1f1f1; border-color: #2a2a2a; }
+        body.dark-mode .table { color: #f1f1f1; }
+        body.dark-mode .table thead th { color: #f1f1f1; }
+        body.dark-mode .table-striped tbody tr:nth-of-type(odd) { --bs-table-accent-bg: rgba(255,255,255,0.05); color: #f1f1f1; }
+        body.dark-mode .form-control { background-color: #2a2a2a; color: #f1f1f1; border-color: #3a3a3a; }
+        body.dark-mode .form-control:focus { background-color: #2f2f2f; color: #fff; border-color: #5c7cfa; box-shadow: none; }
+        body.dark-mode .form-control.is-invalid { border-color: #ff6b6b; }
+        body.dark-mode .alert-info { background-color: rgba(13,110,253,0.1); color: #cfe2ff; border-color: rgba(13,110,253,0.2); }
+        body.dark-mode .nav-tabs .nav-link.active { background-color: #1e1e1e; border-color: #2a2a2a; color: #f1f1f1; }
+        body.dark-mode .nav-tabs .nav-link { color: #dee2e6; }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1 class="mb-4">Breast Cancer Diagnosis Assistant</h1>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="mb-0">Breast Cancer Diagnosis Assistant</h1>
+        <button type="button" id="theme-toggle" class="btn btn-outline-dark btn-sm">Dark Mode</button>
+    </div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
@@ -52,10 +66,14 @@
                             <label class="form-label" for="{{ feature.name }}">{{ feature.label }}</label>
                             <input 
                                 type="text"
-                                class="form-control"
+                                class="form-control {% if diagnosis_errors.get(feature.name) %}is-invalid{% endif %}"
                                 id="{{ feature.name }}"
                                 name="{{ feature.name }}"
+                                value="{{ diagnosis_values.get(feature.name, '') }}"
                                 required>
+                            {% if diagnosis_errors.get(feature.name) %}
+                            <div class="invalid-feedback">{{ diagnosis_errors.get(feature.name) }}</div>
+                            {% endif %}
                         </div>
                     </div>
                     {% endfor %}
@@ -92,7 +110,8 @@
                                 type="text"
                                 class="form-control"
                                 id="filter_{{ feature.name }}"
-                                name="filter_{{ feature.name }}">
+                                name="filter_{{ feature.name }}"
+                                value="{{ filter_values.get('filter_' + feature.name, '') }}">
                         </div>
                     </div>
                     {% endfor %}
@@ -162,6 +181,35 @@
         inputs.forEach(function(input) {
           input.value = '';
         });
+      });
+    }
+
+    const themeToggle = document.getElementById('theme-toggle');
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const storedTheme = localStorage.getItem('theme') || (prefersDark ? 'dark' : 'light');
+
+    function applyTheme(theme) {
+      const body = document.body;
+      if (theme === 'dark') {
+        body.classList.add('dark-mode');
+        themeToggle.textContent = 'Light Mode';
+        themeToggle.classList.remove('btn-outline-dark');
+        themeToggle.classList.add('btn-outline-light');
+      } else {
+        body.classList.remove('dark-mode');
+        themeToggle.textContent = 'Dark Mode';
+        themeToggle.classList.remove('btn-outline-light');
+        themeToggle.classList.add('btn-outline-dark');
+      }
+    }
+
+    applyTheme(storedTheme);
+
+    if (themeToggle) {
+      themeToggle.addEventListener('click', function () {
+        const newTheme = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
+        applyTheme(newTheme);
+        localStorage.setItem('theme', newTheme);
       });
     }
   })();

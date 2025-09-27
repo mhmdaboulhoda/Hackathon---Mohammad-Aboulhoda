@@ -15,7 +15,7 @@ MODEL_PATH = Path("models/best_model.joblib")
 DATASET_PATH = Path("Breast_cancer_dataset.csv")
 
 app = Flask(__name__)
-app.secret_key = "change-me"  # replace with env secret in production
+app.secret_key = "mhmd"
 
 
 @dataclass
@@ -25,6 +25,11 @@ class FeatureMeta:
     min_val: float
     max_val: float
     is_numeric: bool
+
+class ValidationError(ValueError):
+    def __init__(self, field: str, message: str) -> None:
+        super().__init__(message)
+        self.field = field
 
 
 class ModelService:
@@ -65,14 +70,14 @@ class ModelService:
         for meta in self.features_meta:
             raw = form_data.get(meta.name)
             if raw is None or raw.strip() == "":
-                raise ValueError(f"Field '{meta.label}' is required.")
+                raise ValidationError(meta.name, f"{meta.label} is required.")
             if meta.is_numeric:
                 try:
                     value = float(raw)
                 except ValueError:
-                    raise ValueError(f"{meta.label} must be a number.")
+                    raise ValidationError(meta.name, f"{meta.label} must be a number.")
                 if value <= 0:
-                    raise ValueError(f"{meta.label} must be a positive number.")
+                    raise ValidationError(meta.name, f"{meta.label} must be a positive number.")
                 input_dict[meta.name] = value
             else:
                 input_dict[meta.name] = raw.strip()
@@ -169,13 +174,25 @@ def index():
             records=[],
             total_records=0,
             active_tab=active_tab,
+            diagnosis_values={},
+            diagnosis_errors={},
+            filter_values={},
         )
 
     prediction = None
     filtered_records = list(patient_records)
 
+    diagnosis_values: Dict[str, str] = {}
+    diagnosis_errors: Dict[str, str] = {}
+    filter_values: Dict[str, str] = {}
+
     if request.method == "POST":
         active_tab = request.form.get("tab", "diagnosis")
+        feature_names = {meta.name for meta in svc.features_meta}
+        if active_tab == "diagnosis":
+            diagnosis_values = {k: v for k, v in request.form.items() if k in feature_names}
+        elif active_tab == "records":
+            filter_values = {k: v for k, v in request.form.items() if k.startswith("filter_")}
         try:
             if active_tab == "diagnosis" and "predict" in request.form:
                 prediction, cleaned_inputs = svc.predict(request.form)
@@ -185,6 +202,7 @@ def index():
                     "probability": prediction["probability"],
                 }
                 patient_records.append(entry)
+                diagnosis_values = {k: str(v) for k, v in cleaned_inputs.items()}
                 flash("Prediction completed and record saved.", "success")
             elif active_tab == "records" and "filter" in request.form:
                 filtered_records = filter_records(patient_records, request.form, svc.features_meta)
@@ -192,6 +210,11 @@ def index():
                     f"Filters applied. Showing {len(filtered_records)} of {len(patient_records)} saved records.",
                     "info",
                 )
+        except ValidationError as err:
+            flash(str(err), "danger")
+            diagnosis_errors[err.field] = str(err)
+            if not diagnosis_values:
+                diagnosis_values = {k: v for k, v in request.form.items() if k in feature_names}
         except ValueError as err:
             flash(str(err), "danger")
             if active_tab == "records":
@@ -207,6 +230,9 @@ def index():
         records=filtered_records,
         total_records=len(patient_records),
         active_tab=active_tab,
+        diagnosis_values=diagnosis_values,
+        diagnosis_errors=diagnosis_errors,
+        filter_values=filter_values,
     )
 
 
